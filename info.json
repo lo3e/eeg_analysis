@@ -1,0 +1,21 @@
+{
+    "groups": {
+        "HC01": "control",
+        "SCZ03": "responsive",
+        "TRS01": "resistant"
+    },
+    "clips": {
+        "Clip_1": {
+            "valence": 5.32,
+            "arousal": 3.09
+        },
+        "Clip_2": {
+            "valence": 7.07,
+            "arousal": 4.45
+        },
+        "Clip_3": {
+            "valence": 4.48,
+            "arousal": 4.50
+        }
+    }
+}
