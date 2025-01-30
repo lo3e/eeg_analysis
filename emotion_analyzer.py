@@ -6,6 +6,8 @@ from scipy import stats
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.preprocessing import PowerTransformer
+from scipy.stats import boxcox
 
 class EmotionAnalyzer:
     def __init__(self, csv_path):
@@ -17,36 +19,21 @@ class EmotionAnalyzer:
         self.feature_cols = [col for col in self.df.columns if any(col.startswith(prefix) 
                            for prefix in ['theta_', 'alpha_', 'beta_', 'asymmetry_', 'beta_alpha_ratio_'])]
         # Stampa le colonne disponibili per debug
-        print("Colonne disponibili nel DataFrame:")
-        print(self.df.columns.tolist())
-        print("\nFeature columns:")
-        print(self.feature_cols)
+        #print("Colonne disponibili nel DataFrame:")
+        #print(self.df.columns.tolist())
+        #print("\nFeature columns:")
+        #print(self.feature_cols)
 
-    def robust_normalize(self, values, new_scale=10, lower_percentile=5, upper_percentile=95):
+    def min_max_normalize(self, values, new_min=0, new_max=10):
         """
-        Normalizza i valori in una nuova scala (es. 0-10) utilizzando i percentili per gestire gli outlier.
-        
-        Parameters:
-        values: pd.Series - Valori da normalizzare
-        new_scale: int - Valore massimo della nuova scala (default: 10)
-        lower_percentile: float - Percentile inferiore per il calcolo del minimo (default: 1)
-        upper_percentile: float - Percentile superiore per il calcolo del massimo (default: 99)
-        
-        Returns:
-        pd.Series - Valori normalizzati
+        Normalizza i valori in un intervallo [new_min, new_max].
         """
-        # Calcola i percentili inferiore e superiore
-        lower_bound = np.percentile(values, lower_percentile)
-        upper_bound = np.percentile(values, upper_percentile)
-        
-        # Clip dei valori per rimuovere gli outlier
-        clipped_values = np.clip(values, lower_bound, upper_bound)
-        
-        # Normalizza i valori nella nuova scala
-        normalized_values = ((clipped_values - lower_bound) / (upper_bound - lower_bound)) * new_scale
-        
+        min_val = np.min(values)
+        max_val = np.max(values)
+        normalized_values = (values - min_val) / (max_val - min_val) * (new_max - new_min) + new_min
+
         return normalized_values
-
+    
     def plot_distributions(self, raw_values, normalized_values, title):
         """
         Visualizza la distribuzione dei dati prima e dopo la normalizzazione.
@@ -98,30 +85,68 @@ class EmotionAnalyzer:
 
         # Stampa i nomi delle colonne di asimmetria disponibili
         asymmetry_cols = [col for col in self.df.columns if 'asymmetry_' in col]
-        print("\nColonne di asimmetria disponibili:")
-        print(asymmetry_cols)
+        #print("\nColonne di asimmetria disponibili:")
+        #print(asymmetry_cols)
         
         # Verifica quali colonne beta e alpha sono disponibili
         beta_cols = [col for col in self.df.columns if 'beta_' in col]
-        print("\nColonne beta disponibili:")
-        print(beta_cols)
+        #print("\nColonne beta disponibili:")
+        #print(beta_cols)
 
         # Calcola prima i valori non normalizzati
         raw_valence = self.df.apply(lambda row: (row['asymmetry_alpha'] * 0.6 + 
                                                (row['beta_alpha_ratio_F4'] - row['beta_alpha_ratio_F3']) * 0.4), 
                                    axis=1)
         
-        raw_arousal = self.df.apply(lambda row: (row['beta_AF3'] + row['beta_AF4'] + 
-                                               row['beta_F3'] + row['beta_F4']) / 4, 
-                                   axis=1)
+        raw_arousal = self.df.apply(lambda row: (row['beta_AF3'] + row['beta_AF4'] + row['beta_F3'] + row['beta_F4']) / 4, axis=1)
         
-        # Applica la normalizzazione robusta
-        self.df['calculated_valence'] = self.robust_normalize(raw_valence)
-        self.df['calculated_arousal'] = self.robust_normalize(raw_arousal)
+        # Visualizza la distribuzione originale di valence e arousal
+        plt.figure(figsize=(12, 5))
+        plt.subplot(1, 2, 1)
+        sns.histplot(raw_valence, kde=True, color='skyblue')
+        plt.title('Distribuzione originale - Valence')
+
+        plt.subplot(1, 2, 2)
+        sns.histplot(raw_arousal, kde=True, color='lightgreen')
+        plt.title('Distribuzione originale - Arousal')
+        plt.show()
         
-        # Visualizza i dati prima e dopo la normalizzazione
-        self.plot_distributions(raw_valence, self.df['calculated_valence'], 'Valence')
-        self.plot_distributions(raw_arousal, self.df['calculated_arousal'], 'Arousal')
+        #normalizzazione di valence
+        self.df['calculated_valence'] = self.min_max_normalize(raw_valence)
+
+        #normalizzazione di arousal
+        # Trasformazione di Box-Cox con lambda personalizzato
+        transformed_arousal, _ = boxcox(raw_arousal + 1)  # Aggiungi 1 per evitare valori negativi
+
+        # Calcola i quartili e l'IQR
+        Q1 = np.percentile(transformed_arousal, 25)
+        Q3 = np.percentile(transformed_arousal, 75)
+        IQR = Q3 - Q1
+
+        # Definisci i limiti per gli outlier
+        lower_bound = Q1 - 1.5 * IQR
+        upper_bound = Q3 + 1.5 * IQR
+
+        # Filtra i valori per rimuovere gli outlier
+        filtered_arousal = transformed_arousal[(transformed_arousal >= lower_bound) & 
+        (transformed_arousal <= upper_bound)]
+
+        # Filtra il DataFrame originale per rimuovere le righe corrispondenti agli outlier
+        self.df = self.df[(transformed_arousal >= lower_bound) & (transformed_arousal <= upper_bound)]
+
+        # Normalizzazione Z-score
+        self.df['calculated_arousal'] = self.min_max_normalize(filtered_arousal)
+
+        # Visualizza le distribuzioni dopo la normalizzazione
+        plt.figure(figsize=(12, 5))
+        plt.subplot(1, 2, 1)
+        sns.histplot(self.df['calculated_valence'], kde=True, color='skyblue')
+        plt.title('Distribuzione normalizzata - Valence')
+
+        plt.subplot(1, 2, 2)
+        sns.histplot(self.df['calculated_arousal'], kde=True, color='lightgreen')
+        plt.title('Distribuzione normalizzata - Arousal')
+        plt.show()
 
         # Crea due subplot affiancati
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 8))
@@ -136,6 +161,9 @@ class EmotionAnalyzer:
             'calculated_arousal': 'mean'
         })
 
+        # Aggiungi jitter per evitare sovrapposizioni
+        jitter = 0.1  # Piccola variazione casuale
+
         # Plot 1: Visualizzazione per gruppo
         for group in grouped_data['group'].unique():
             group_data = grouped_data[grouped_data['group'] == group]
@@ -144,13 +172,15 @@ class EmotionAnalyzer:
             for clip in grouped_data['clip'].unique():
                 clip_data = group_data[group_data['clip'] == clip]
                 if not clip_data.empty:
-                    ax1.scatter(clip_data['calculated_valence'], 
-                            clip_data['calculated_arousal'],
-                            label=f'{group} - {clip}',
-                            color=group_colors.get(group, 'gray'),
-                            marker=clip_markers.get(clip, 'o'),
-                            s=100,
-                            alpha=0.6)
+                    ax1.scatter(
+                        clip_data['calculated_valence'] + np.random.uniform(-jitter, jitter), 
+                        clip_data['calculated_arousal'] + np.random.uniform(-jitter, jitter),
+                        label=f'{group} - {clip}',
+                        color=group_colors.get(group, 'gray'),
+                        marker=clip_markers.get(clip, 'o'),
+                        s=150,  # Aumenta la dimensione dei punti
+                        alpha=0.8  # Riduci la trasparenza
+                    )
 
         # Plot 2: Visualizzazione per clip
         for clip in grouped_data['clip'].unique():
@@ -160,13 +190,15 @@ class EmotionAnalyzer:
             for group in grouped_data['group'].unique():
                 group_data = clip_data[clip_data['group'] == group]
                 if not group_data.empty:
-                    ax2.scatter(group_data['calculated_valence'], 
-                            group_data['calculated_arousal'],
-                            label=f'{clip} - {group}',
-                            color=group_colors.get(group, 'gray'),
-                            marker=clip_markers.get(clip, 'o'),
-                            s=100,
-                            alpha=0.6)
+                    ax2.scatter(
+                        group_data['calculated_valence'] + np.random.uniform(-jitter, jitter), 
+                        group_data['calculated_arousal'] + np.random.uniform(-jitter, jitter),
+                        label=f'{clip} - {group}',
+                        color=group_colors.get(group, 'gray'),
+                        marker=clip_markers.get(clip, 'o'),
+                        s=150,  # Aumenta la dimensione dei punti
+                        alpha=0.8  # Riduci la trasparenza
+                    )
 
         # Aggiungi i valori di riferimento in entrambi i plot
         reference_values = {}
@@ -219,6 +251,7 @@ class EmotionAnalyzer:
 
         plt.tight_layout()
         plt.show()
+
     '''   
     def perform_statistical_analysis(self):
         """
