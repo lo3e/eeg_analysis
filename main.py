@@ -30,7 +30,22 @@ class EEGEmotionAnalyzer:
             'alpha': (8, 13),
             'beta': (13, 30)
         }
-    
+
+    def get_group_from_subject(self, subject):
+        """
+        Restituisce il gruppo in base al prefisso del soggetto.
+        
+        Parameters:
+        subject: str - Codice del soggetto (es. HC01, SCZ03, TRS01)
+        
+        Returns:
+        str - Gruppo associato al soggetto (es. control, responsive, resistant)
+        """
+        for prefix, group in self.metadata['groups'].items():
+            if subject.startswith(prefix):
+                return group
+        return None  # Se nessun prefisso corrisponde
+
     def preprocess_single_file(self, file_path):
         """Preprocess di un singolo file EEG"""
         # Carica il file
@@ -132,7 +147,7 @@ class EEGEmotionAnalyzer:
                 # Aggiungi metadati
                 features_df['subject'] = subject
                 features_df['clip'] = clip
-                features_df['group'] = self.metadata['groups'].get(subject)
+                features_df['group'] = self.get_group_from_subject(subject)
                 features_df['reference_valence'] = self.metadata['clips'][clip]['valence']
                 features_df['reference_arousal'] = self.metadata['clips'][clip]['arousal']
                 

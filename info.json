@@ -1,8 +1,8 @@
 {
     "groups": {
-        "HC01": "control",
-        "SCZ03": "responsive",
-        "TRS01": "resistant"
+        "HC": "control",
+        "SCZ": "responsive",
+        "TRS": "resistant"
     },
     "clips": {
         "Clip_1": {
