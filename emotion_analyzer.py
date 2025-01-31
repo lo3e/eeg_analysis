@@ -8,6 +8,9 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.preprocessing import PowerTransformer
 from scipy.stats import boxcox
+from scipy.stats import f_oneway
+from sklearn.mixture import GaussianMixture
+from matplotlib.patches import Ellipse
 
 class EmotionAnalyzer:
     def __init__(self, csv_path):
@@ -99,7 +102,7 @@ class EmotionAnalyzer:
                                    axis=1)
         
         raw_arousal = self.df.apply(lambda row: (row['beta_AF3'] + row['beta_AF4'] + row['beta_F3'] + row['beta_F4']) / 4, axis=1)
-        
+        '''
         # Visualizza la distribuzione originale di valence e arousal
         plt.figure(figsize=(12, 5))
         plt.subplot(1, 2, 1)
@@ -110,7 +113,7 @@ class EmotionAnalyzer:
         sns.histplot(raw_arousal, kde=True, color='lightgreen')
         plt.title('Distribuzione originale - Arousal')
         plt.show()
-        
+        '''
         #normalizzazione di valence
         self.df['calculated_valence'] = self.min_max_normalize(raw_valence)
 
@@ -136,7 +139,7 @@ class EmotionAnalyzer:
 
         # Normalizzazione Z-score
         self.df['calculated_arousal'] = self.min_max_normalize(filtered_arousal)
-
+        '''
         # Visualizza le distribuzioni dopo la normalizzazione
         plt.figure(figsize=(12, 5))
         plt.subplot(1, 2, 1)
@@ -147,7 +150,7 @@ class EmotionAnalyzer:
         sns.histplot(self.df['calculated_arousal'], kde=True, color='lightgreen')
         plt.title('Distribuzione normalizzata - Arousal')
         plt.show()
-
+        '''
         # Crea due subplot affiancati
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 8))
 
@@ -155,16 +158,18 @@ class EmotionAnalyzer:
         group_colors = {'control': 'blue', 'resistant': 'red', 'responsive': 'green'}
         clip_markers = {'Clip_1': 'o', 'Clip_2': 's', 'Clip_3': '^'}
 
-        # Raggruppa i dati per gruppo e clip, calcolando la media
+        # Raggruppa i dati per gruppo e clip, calcolando media e deviazione standard
         grouped_data = self.df.groupby(['group', 'clip'], as_index=False).agg({
-            'calculated_valence': 'mean',
-            'calculated_arousal': 'mean'
+            'calculated_valence': ['mean', 'std'],
+            'calculated_arousal': ['mean', 'std']
         })
+        # Rinomina le colonne per facilitare l'accesso
+        grouped_data.columns = ['group', 'clip', 'valence_mean', 'valence_std', 'arousal_mean', 'arousal_std']
 
         # Aggiungi jitter per evitare sovrapposizioni
-        jitter = 0.1  # Piccola variazione casuale
+        jitter = 0.5  # Aumenta il jitter
 
-        # Plot 1: Visualizzazione per gruppo
+        # Plot 1: Visualizzazione per gruppo con barre di errore
         for group in grouped_data['group'].unique():
             group_data = grouped_data[grouped_data['group'] == group]
             
@@ -172,34 +177,59 @@ class EmotionAnalyzer:
             for clip in grouped_data['clip'].unique():
                 clip_data = group_data[group_data['clip'] == clip]
                 if not clip_data.empty:
-                    ax1.scatter(
-                        clip_data['calculated_valence'] + np.random.uniform(-jitter, jitter), 
-                        clip_data['calculated_arousal'] + np.random.uniform(-jitter, jitter),
+                    ax1.errorbar(
+                        clip_data['valence_mean'] + np.random.uniform(-jitter, jitter), 
+                        clip_data['arousal_mean'] + np.random.uniform(-jitter, jitter),
+                        xerr=clip_data['valence_std'],
+                        yerr=clip_data['arousal_std'],
                         label=f'{group} - {clip}',
                         color=group_colors.get(group, 'gray'),
                         marker=clip_markers.get(clip, 'o'),
-                        s=150,  # Aumenta la dimensione dei punti
-                        alpha=0.8  # Riduci la trasparenza
+                        markersize=10,
+                        capsize=5,
+                        alpha=0.8
                     )
 
-        # Plot 2: Visualizzazione per clip
-        for clip in grouped_data['clip'].unique():
-            clip_data = grouped_data[grouped_data['clip'] == clip]
-            
-            # Plot per ogni gruppo all'interno della clip
-            for group in grouped_data['group'].unique():
-                group_data = clip_data[clip_data['group'] == group]
-                if not group_data.empty:
-                    ax2.scatter(
-                        group_data['calculated_valence'] + np.random.uniform(-jitter, jitter), 
-                        group_data['calculated_arousal'] + np.random.uniform(-jitter, jitter),
-                        label=f'{clip} - {group}',
-                        color=group_colors.get(group, 'gray'),
-                        marker=clip_markers.get(clip, 'o'),
-                        s=150,  # Aumenta la dimensione dei punti
-                        alpha=0.8  # Riduci la trasparenza
-                    )
-
+        # Plot 2: Grafico a densità per gruppi
+        sns.kdeplot(
+            x='calculated_valence', 
+            y='calculated_arousal', 
+            hue='group', 
+            data=self.df, 
+            ax=ax2,
+            palette=group_colors,
+            alpha=0.6
+        )
+        
+        # Aggiungi ellissi di confidenza per ogni gruppo
+        for group in self.df['group'].unique():
+            group_data = self.df[self.df['group'] == group]
+            if len(group_data) > 1:  # Richiede almeno 2 punti per calcolare la covarianza
+                gmm = GaussianMixture(n_components=1)
+                gmm.fit(group_data[['calculated_valence', 'calculated_arousal']])
+                
+                # Estrai media e covarianza
+                mean = gmm.means_[0]
+                cov = gmm.covariances_[0]
+                
+                # Calcola autovalori e autovettori per disegnare l'ellisse
+                eigenvalues, eigenvectors = np.linalg.eigh(cov)
+                angle = np.degrees(np.arctan2(*eigenvectors[:, 0][::-1]))
+                width, height = 2 * np.sqrt(eigenvalues)
+                
+                # Disegna l'ellisse
+                ellipse = Ellipse(
+                    xy=mean,
+                    width=width,
+                    height=height,
+                    angle=angle,
+                    edgecolor=group_colors.get(group, 'gray'),
+                    facecolor='none',
+                    linewidth=2,
+                    alpha=0.8
+                )
+                ax2.add_patch(ellipse)
+        
         # Aggiungi i valori di riferimento in entrambi i plot
         reference_values = {}
         for clip in self.df['clip'].unique():
@@ -232,7 +262,7 @@ class EmotionAnalyzer:
             ax.set_xlabel('Valence')
             ax.set_ylabel('Arousal')
             ax.grid(True)
-            ax.set_xlim([0, 10])
+            ax.set_xlim([0, 10])  # Scala completa
             ax.set_ylim([0, 10])
 
         ax1.set_title('Distribuzione per Gruppi (con valori di riferimento)')
@@ -251,6 +281,15 @@ class EmotionAnalyzer:
 
         plt.tight_layout()
         plt.show()
+
+        # Analisi statistica: ANOVA per confrontare i gruppi
+        groups_data = [self.df[self.df['group'] == group]['calculated_valence'] for group in self.df['group'].unique()]
+        f_stat, p_val = f_oneway(*groups_data)
+        print(f"ANOVA per Valence: F-statistic = {f_stat:.2f}, p-value = {p_val:.4f}")
+
+        groups_data = [self.df[self.df['group'] == group]['calculated_arousal'] for group in self.df['group'].unique()]
+        f_stat, p_val = f_oneway(*groups_data)
+        print(f"ANOVA per Arousal: F-statistic = {f_stat:.2f}, p-value = {p_val:.4f}")
 
     '''   
     def perform_statistical_analysis(self):
