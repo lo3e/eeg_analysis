@@ -1,0 +1,192 @@
+{
+    "doc": "Session file for Empatica devices.",
+    "name": "empatica.format.avro.Session",
+    "type": "record",
+    "version": "6.4",
+    "fields": [
+      {
+        "doc": "Version of the AVRO file schema.",
+        "name": "schemaVersion",
+        "type": {
+          "name": "Version",
+          "type": "record",
+          "fields": [
+            { "doc": "Major version.", "name": "major", "type": "int" },
+            { "doc": "Minor version.", "name": "minor", "type": "int" },
+            { "doc": "Patch version.", "name": "patch", "type": "int" }
+          ]
+        }
+      },
+      {
+        "doc": "Version of the device firmware.",
+        "name": "fwVersion",
+        "type": "empatica.format.avro.Version"
+      },
+      {
+        "doc": "Version of the device hardware.",
+        "name": "hwVersion",
+        "type": "empatica.format.avro.Version"
+      },
+      {
+        "doc": "Version of the processing algorithm.",
+        "name": "algoVersion",
+        "type": "empatica.format.avro.Version"
+      },
+      {
+        "doc": "Delta [s] from UTC [s] time at the location of the participant.",
+        "name": "timezone",
+        "type": "int",
+        "default": 0
+      },
+      {
+        "doc": "Information of the participant enrolled.",
+        "name": "enrollment",
+        "type": {
+          "name": "Enrollment",
+          "type": "record",
+          "fields": [
+            { "doc": "Participant identifier.", "name": "participantID", "type": "string" },
+            { "doc": "Site identifier.", "name": "siteID", "type": "string" },
+            { "doc": "Study identifier.", "name": "studyID", "type": "string" },
+            { "doc": "Organization identifier.", "name": "organizationID", "type": "string" }
+          ]
+        }
+      },
+      {
+        "doc": "Serial Number of the device.",
+        "name": "deviceSn",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "doc": "Device model.",
+        "name": "deviceModel",
+        "type": {
+          "name": "DeviceModel",
+          "type": "enum",
+          "symbols": ["EMBRACEPLUS"],
+          "default": "EMBRACEPLUS"
+        }
+      },
+      {
+        "doc": "High-frequency data recorded from sensors.",
+        "name": "rawData",
+        "type": {
+          "name": "RawData",
+          "type": "record",
+          "fields": [
+            {
+              "doc": "Data from 3-axis accelerometer sensor with ADC counts as unit.",
+              "name": "accelerometer",
+              "type": {
+                "name": "InertialMeasurement",
+                "type": "record",
+                "fields": [
+                  { "doc": "Timestamp in UTC [µs] of this signal's start.", "name": "timestampStart", "type": "long" },
+                  { "doc": "Sampling frequency [Hz] of the sensor.", "name": "samplingFrequency", "type": "float" },
+                  {
+                    "doc": "Parameters to convert ADC readings into physical units.",
+                    "name": "imuParams",
+                    "type": {
+                      "name": "ImuParams",
+                      "type": "record",
+                      "fields": [
+                        { "doc": "Minimum physical value that can be recorded.", "name": "physicalMin", "type": "int" },
+                        { "doc": "Maximum physical value that can be recorded.", "name": "physicalMax", "type": "int" },
+                        { "doc": "Minimum extreme value that ADC can produce.", "name": "digitalMin", "type": "int" },
+                        { "doc": "Maximum extreme value that ADC can produce.", "name": "digitalMax", "type": "int" }
+                      ]
+                    },
+                    "default": []
+                  },
+                  { "doc": "Acceleration/Gyration in the x-axis [ADC counts].", "name": "x", "type": { "type": "array", "items": "int" } },
+                  { "doc": "Acceleration/Gyration in the y-axis [ADC counts].", "name": "y", "type": { "type": "array", "items": "int" } },
+                  { "doc": "Acceleration/Gyration in the z-axis [ADC counts].", "name": "z", "type": { "type": "array", "items": "int" } }
+                ]
+              }
+            },
+            {
+              "doc": "Data from 3-axis gyroscope sensor with ADC counts as unit.",
+              "name": "gyroscope",
+              "type": "empatica.format.avro.InertialMeasurement"
+            },
+            {
+              "doc": "Data from the electrodermal activity sensor expressed as microsiemens [µS].",
+              "name": "eda",
+              "type": {
+                "name": "Eda",
+                "type": "record",
+                "fields": [
+                  { "doc": "Timestamp in UTC [µs] of this signal's start.", "name": "timestampStart", "type": "long" },
+                  { "doc": "Sampling frequency [Hz] of the sensor.", "name": "samplingFrequency", "type": "float" },
+                  { "doc": "Electrodermal activity [µS].", "name": "values", "type": { "type": "array", "items": "float" } }
+                ]
+              }
+            },
+            {
+              "doc": "Data from temperature sensor in Celsius [°C].",
+              "name": "temperature",
+              "type": {
+                "name": "Temperature",
+                "type": "record",
+                "fields": [
+                  { "doc": "Timestamp in UTC [µs] of this signal's start.", "name": "timestampStart", "type": "long" },
+                  { "doc": "Sampling frequency [Hz] of the sensor.", "name": "samplingFrequency", "type": "float" },
+                  { "doc": "Temperature [°C].", "name": "values", "type": { "type": "array", "items": "float" } }
+                ]
+              }
+            },
+            {
+              "doc": "Event tags for button presses on the device.",
+              "name": "tags",
+              "type": {
+                "name": "Tags",
+                "type": "record",
+                "fields": [
+                  { "doc": "Timestamps in UTC [µs] of the event marks.", "name": "tagsTimeMicros", "type": { "type": "array", "items": "long" } }
+                ]
+              }
+            },
+            {
+              "doc": "Blood Volume Pulse from photoplethysmograph.",
+              "name": "bvp",
+              "type": {
+                "name": "Bvp",
+                "type": "record",
+                "fields": [
+                  { "doc": "Timestamp in UTC [µs] of this processed signal's start.", "name": "timestampStart", "type": "long" },
+                  { "doc": "Sampling frequency [Hz] of the sensor.", "name": "samplingFrequency", "type": "float" },
+                  { "doc": "Light absorption [nW].", "name": "values", "type": { "type": "array", "items": "float" } }
+                ]
+              }
+            },
+            {
+              "doc": "Timestamps of the systolic peaks in the PPG signal.",
+              "name": "systolicPeaks",
+              "type": {
+                "name": "SystolicPeaks",
+                "type": "record",
+                "fields": [
+                  { "doc": "Timestamps in UTC [ns] of systolic peaks' positions.", "name": "peaksTimeNanos", "type": { "type": "array", "items": "long" } }
+                ]
+              }
+            },
+            {
+              "doc": "Counter of foot steps.",
+              "name": "steps",
+              "type": {
+                "name": "Steps",
+                "type": "record",
+                "fields": [
+                  { "doc": "Timestamp in UTC [µs] of this signal's start.", "name": "timestampStart", "type": "long" },
+                  { "doc": "Sampling frequency [Hz] of the sensor.", "name": "samplingFrequency", "type": "float" },
+                  { "doc": "Number of foot steps.", "name": "values", "type": { "type": "array", "items": "int" } }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+  
