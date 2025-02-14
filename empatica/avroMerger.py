@@ -15,7 +15,7 @@ def convert_to_iso(timestamp):
     return (datetime(1970, 1, 1) + timedelta(microseconds=timestamp)).isoformat()
 
 # Directory di input e output
-directory = "C:/Users/Enzo/Desktop/Tesi/DatiEmpatica/1/1/participant_data/2024-12-18/HC01-3YK32132K7/raw_data/v6"
+directory = 'C:/Users/lo3e/Documents/Università/PhD/Progetti/SPECTRA/Empatica/participant_data'
 output_dir = directory
 
 # Dati accumulati
