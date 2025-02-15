@@ -11,9 +11,9 @@ def describe_file_system(directory, target_folder, output_file):
                 f.write(f'{sub_indent}{file}\n')
 
 # Percorso della directory principale
-start_directory = 'C:/Users/lo3e/Documents/Università/PhD/Progetti/SPECTRA/Empatica/participant_data' # Modifica con il percorso corretto
+start_directory = 'C:/Users/lo3e/Documents/Università/PhD/Progetti/SPECTRA/Empatica/output' # Modifica con il percorso corretto
 target_folder = ''  # Sottocartella target
-output_file = 'dataset_file_system.txt'
+output_file = 'output_file_system.txt'
 
 # Descrivi il file system relativo alla sottocartella target e scrivi il risultato in un file di testo
 describe_file_system(start_directory, target_folder, output_file)

@@ -1,0 +1,101 @@
+/
+HC01/
+    accelerometer.csv
+    bvp.csv
+    eda.csv
+    temperature.csv
+HC02/
+    accelerometer.csv
+    bvp.csv
+    eda.csv
+    temperature.csv
+HC03/
+    accelerometer.csv
+    bvp.csv
+    eda.csv
+    temperature.csv
+HC04/
+    accelerometer.csv
+    bvp.csv
+    eda.csv
+    temperature.csv
+HC05/
+    accelerometer.csv
+    bvp.csv
+    eda.csv
+    temperature.csv
+HC06/
+    accelerometer.csv
+    bvp.csv
+    eda.csv
+    temperature.csv
+HC07/
+    accelerometer.csv
+    bvp.csv
+    eda.csv
+    temperature.csv
+SCZ03/
+    accelerometer.csv
+    bvp.csv
+    eda.csv
+    temperature.csv
+SCZ07/
+    accelerometer.csv
+    bvp.csv
+    eda.csv
+    temperature.csv
+SCZ09/
+    accelerometer.csv
+    bvp.csv
+    eda.csv
+    temperature.csv
+SCZ11/
+    accelerometer.csv
+    bvp.csv
+    eda.csv
+    temperature.csv
+SCZ14/
+    accelerometer.csv
+    bvp.csv
+    eda.csv
+    temperature.csv
+TRS01/
+    accelerometer.csv
+    bvp.csv
+    eda.csv
+    temperature.csv
+TRS02/
+    accelerometer.csv
+    bvp.csv
+    eda.csv
+    temperature.csv
+TRS03/
+    accelerometer.csv
+    bvp.csv
+    eda.csv
+    temperature.csv
+TRS04/
+    accelerometer.csv
+    bvp.csv
+    eda.csv
+    temperature.csv
+TRS05/
+    accelerometer.csv
+    bvp.csv
+    eda.csv
+    temperature.csv
+TRS06/
+    accelerometer.csv
+    bvp.csv
+    eda.csv
+    temperature.csv
+TRS07/
+    accelerometer.csv
+    bvp.csv
+    eda.csv
+    temperature.csv
+TRS09/
+    accelerometer.csv
+    bvp.csv
+    eda.csv
+    temperature.csv
